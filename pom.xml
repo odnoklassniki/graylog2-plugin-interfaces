@@ -3,7 +3,7 @@
 
   <groupId>org.graylog2</groupId>
   <artifactId>graylog2-plugin</artifactId>
-  <version>0.10.10-SNAPSHOT</version>
+  <version>0.10.10-ODKL</version>
   <packaging>jar</packaging>
 
   <name>graylog2-plugin</name>
@@ -84,6 +84,11 @@
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>2.1</version>
+    </dependency>
+    <dependency>
+        <groupId>com.eaio.uuid</groupId>
+        <artifactId>uuid</artifactId>
+        <version>3.2</version>
     </dependency>
   </dependencies>
 </project>
