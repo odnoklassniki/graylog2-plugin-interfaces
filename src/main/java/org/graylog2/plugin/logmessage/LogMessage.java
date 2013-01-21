@@ -25,6 +25,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.graylog2.plugin.streams.Stream;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,8 +51,8 @@ public class LogMessage {
     private String file;
     private int line;
 
-    private Map<String, Object> additionalData = Maps.newHashMap();
-    private List<Stream> streams = Lists.newArrayList();
+    private Map<String, Object> additionalData ;
+    private List<Stream> streams = Collections.emptyList();
 
     private double createdAt = 0;
     
@@ -70,7 +72,7 @@ public class LogMessage {
     public LogMessage() {
         // the elasticsearch version is the same as the "standard" one, except the encoding is different.
         // to avoid recomputing it when submitting the message to elasticsearch we always use its method.
-        this.id = UUID.randomUUID().toString();
+        this.id = new com.eaio.uuid.UUID().toString();
     }
 
     public boolean isComplete() {
@@ -107,12 +109,16 @@ public class LogMessage {
         }
 
 
-        // Manually converting stream ID to string - caused strange problems without it.
-        List<String> streamIds = Lists.newArrayList();
-        for (Stream stream : this.getStreams()) {
-            streamIds.add(stream.getId().toString());
+        if (getStreams().size()>0) {
+            // Manually converting stream ID to string - caused strange problems without it.
+            List<String> streamIds = Lists.newArrayList();
+            for (Stream stream : this.getStreams()) {
+                streamIds.add(stream.getId().toString());
+            }
+            obj.put("streams", streamIds);
+        } else {
+            obj.put("streams", Collections.EMPTY_LIST);
         }
-        obj.put("streams", streamIds);
 
         return obj;
     }
@@ -123,7 +129,7 @@ public class LogMessage {
         sb.append("level: ").append(level).append(" | ");
         sb.append("host: ").append(host).append(" | ");
         sb.append("facility: ").append(facility).append(" | ");
-        sb.append("add.: ").append(additionalData.size()).append(" | ");
+        sb.append("add.: ").append(additionalData==null ? 0 : additionalData.size()).append(" | ");
         sb.append("shortMessage: ").append(shortMessage);
 
         // Replace all newlines and tabs.
@@ -210,10 +216,19 @@ public class LogMessage {
             return;
         }
         
+        if (this.additionalData==null)
+            this.additionalData = new HashMap<String, Object>();
+        
         this.additionalData.put(pKey, value);
     }      
 
     public void addAdditionalData(Map<String, String> fields) {
+        if (fields.size()==0)
+            return;
+        
+        if (this.additionalData==null)
+            this.additionalData = new HashMap<String, Object>(fields.size()*2);
+
         for (Map.Entry<String, String> field : fields.entrySet()) {
             addAdditionalData(field.getKey(), field.getValue());
         }
@@ -224,11 +239,14 @@ public class LogMessage {
     }
 
     public void removeAdditionalData(String key) {
+        if (this.additionalData==null)
+            return;
+        
         this.additionalData.remove(key);
     }
 
     public Map<String, Object> getAdditionalData() {
-        return this.additionalData;
+        return additionalData == null ? Collections.<String, Object>emptyMap() : this.additionalData;
     }
 
     public void setStreams(List<Stream> streams) {
