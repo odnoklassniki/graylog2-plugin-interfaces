@@ -43,8 +43,6 @@ import org.joda.time.DateTime;
  */
 public final class Tools {
 
-    private static Calendar cal = Calendar.getInstance();
-    
     private Tools() { }
 
     /**
@@ -171,8 +169,7 @@ public final class Tools {
      * @return The current UTC UNIX timestamp.
      */
     public static int getUTCTimestamp() {
-       DateTime dateTime = new DateTime();
-       return (int) (dateTime.getMillis()/1000);
+       return (int) (System.currentTimeMillis()/1000);
     }
 
     /**
@@ -181,8 +178,7 @@ public final class Tools {
      * @return The current UTC UNIX timestamp with milliseconds.
      */
     public static double getUTCTimestampWithMilliseconds() {
-        DateTime dateTime = new DateTime();
-        return getUTCTimestampWithMilliseconds(dateTime.getMillis());
+        return getUTCTimestampWithMilliseconds(System.currentTimeMillis());
     }
 
     /**
@@ -192,8 +188,9 @@ public final class Tools {
      * @return The current UTC UNIX timestamp with milliseconds.
      */
     public static double getUTCTimestampWithMilliseconds(long timestamp) {
+        
+        return timestamp / 1000.0;
 
-        return Double.parseDouble(String.format("%d.%d", timestamp/1000, timestamp%1000));
     }
 
     public static String getLocalHostname() {
@@ -249,9 +246,86 @@ public final class Tools {
     // yyyy-MM-dd HH-mm-ss
     // http://docs.oracle.com/javase/1.5.0/docs/api/java/util/Formatter.html#syntax
     public static String buildElasticSearchTimeFormat(double timestamp) {
-        cal.setTimeInMillis(System.currentTimeMillis());
-
-        return String.format("%1$tY-%1$tm-%1$td %1$tH-%1$tM-%1$tS", cal); // ramtamtam
+        return format(System.currentTimeMillis()); // ramtamtam no more. just fast
     }
+    
+
+    static private volatile long   lastTime;
+    static private volatile String lastTimeString = null;
+
+    /**
+         Appends a date in the format "YYYY-mm-dd HH-mm-ss"
+         to <code>sbuf</code>. For example: "1999-11-27 15-49-37".
+
+         @param sbuf the <code>StringBuffer</code> to write to
+     */
+    public static String format(long now ) {
+
+        int millis = (int)(now % 1000);
+
+        if ((now - millis) != lastTime || lastTimeString == null) {
+            StringBuffer sbuf = new StringBuffer(20);
+            // We reach this point at most once per second
+            // across all threads instead of each time format()
+            // is called. This saves considerable CPU time.
+            Calendar calendar = Calendar.getInstance();
+
+            calendar.setTimeInMillis(now);
+
+            int year =  calendar.get(Calendar.YEAR);
+            sbuf.append(year);
+
+            String month;
+            switch(calendar.get(Calendar.MONTH)) {
+            case Calendar.JANUARY: month = "-01-"; break;
+            case Calendar.FEBRUARY: month = "-02-";  break;
+            case Calendar.MARCH: month = "-03-"; break;
+            case Calendar.APRIL: month = "-04-";  break;
+            case Calendar.MAY: month = "-05-"; break;
+            case Calendar.JUNE: month = "-06-";  break;
+            case Calendar.JULY: month = "-07-"; break;
+            case Calendar.AUGUST: month = "-08-";  break;
+            case Calendar.SEPTEMBER: month = "-09-"; break;
+            case Calendar.OCTOBER: month = "-10-"; break;
+            case Calendar.NOVEMBER: month = "-11-";  break;
+            case Calendar.DECEMBER: month = "-12-";  break;
+            default: month = "-NA-"; break;
+            }
+            sbuf.append(month);
+
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+            if(day < 10)
+                sbuf.append('0');
+            sbuf.append(day);
+
+            sbuf.append(' ');
+
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            if(hour < 10) {
+                sbuf.append('0');
+            }
+            sbuf.append(hour);
+            sbuf.append('-');
+
+            int mins = calendar.get(Calendar.MINUTE);
+            if(mins < 10) {
+                sbuf.append('0');
+            }
+            sbuf.append(mins);
+            sbuf.append('-');
+
+            int secs = calendar.get(Calendar.SECOND);
+            if(secs < 10) {
+                sbuf.append('0');
+            }
+            sbuf.append(secs);
+
+            lastTime = now - millis;
+            lastTimeString = sbuf.toString();
+        }
+
+        return lastTimeString;
+    }
+
  
 }
